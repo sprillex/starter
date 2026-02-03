@@ -1,6 +1,6 @@
 # Robust Dark Mode Implementation
 
-A guide and starter template for implementing a robust, accessible, and "eye-friendly" dark mode for web applications. 
+A guide and starter template for implementing a robust, accessible, and "eye-friendly" dark mode for web applications.
 
 This implementation goes beyond simple color inversion. It focuses on reducing eye strain, preventing OLED smearing, ensuring accessibility compliance, and managing visual hierarchy through elevation.
 
@@ -49,13 +49,13 @@ This template uses **CSS Custom Properties (Variables)** for theming and include
             --bg-body: #ffffff;
             --bg-surface-1: #f7f7f7; /* Cards */
             --bg-surface-2: #eeeeee; /* Modals/Dropdowns */
-            
+
             --text-primary: #121212;
             --text-secondary: #5f6368;
-            
+
             --brand-color: #0055ff;
             --error-color: #d32f2f;
-            
+
             --border-color: #e0e0e0;
             --shadow-color: rgba(0, 0, 0, 0.1);
         }
@@ -64,20 +64,20 @@ This template uses **CSS Custom Properties (Variables)** for theming and include
         /* Applied when data-theme="dark" is on <html> OR system pref is dark */
         [data-theme="dark"] {
             /* Foundation: Dark Grey, not Black */
-            --bg-body: #121212; 
-            
+            --bg-body: #121212;
+
             /* Elevation via Lightness (lighter = closer to user) */
-            --bg-surface-1: #1e1e1e; 
-            --bg-surface-2: #2d2d2d; 
-            
+            --bg-surface-1: #1e1e1e;
+            --bg-surface-2: #2d2d2d;
+
             /* Typography: Off-white and Opacity */
             --text-primary: rgba(255, 255, 255, 0.87);
             --text-secondary: rgba(255, 255, 255, 0.60);
-            
+
             /* Desaturated Accents */
             --brand-color: #8ab4f8; /* Lighter, pastel blue */
             --error-color: #f28b82; /* Lighter red/pink */
-            
+
             --border-color: #333333;
             --shadow-color: rgba(0, 0, 0, 0.5);
         }
@@ -142,7 +142,7 @@ This template uses **CSS Custom Properties (Variables)** for theming and include
 <body>
 
     <h1>Robust Dark Mode</h1>
-    
+
     <div class="card">
         <h2>Surface Level 1</h2>
         <p>This card sits on top of the background. In dark mode, it is slightly lighter (#1e1e1e) than the body (#121212) to create elevation without relying solely on shadows.</p>

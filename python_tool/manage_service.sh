@@ -7,7 +7,7 @@
 # TARGET OS: Linux (Debian/Ubuntu/Mint derivatives)
 #
 # DESCRIPTION:
-#   A comprehensive lifecycle manager for Python systemd services. 
+#   A comprehensive lifecycle manager for Python systemd services.
 #   Handles installation, testing, upgrading (with git), and uninstallation.
 #   Designed to be read by Humans and AI agents for automated deployment.
 #
@@ -218,7 +218,7 @@ get_input() {
         else
             echo -ne "${prompt_text}: "
         fi
-        
+
         read input_val
         input_val=$(echo "$input_val" | xargs) # Trim whitespace
 
@@ -268,9 +268,9 @@ select_git_branch() {
     echo "2. Newest (Auto-detect most recently updated local branch)"
     echo "3. Choose Later (Fetch and list all remote branches)"
     echo "----------------------------------------"
-    
+
     get_input "Select branch option" "BRANCH_OPT" "1"
-    
+
     case "$BRANCH_OPT" in
         1) CURRENT_GIT_BRANCH="main" ;;
         2)
@@ -317,7 +317,7 @@ manage_secrets() {
     echo "========================================"
     log_header "API KEYS & SECRETS"
     echo "========================================"
-    
+
     # --- Port Selection (Dynamic) ---
     local current_port="5000"
     if [ -f "$SECRETS_FILE" ]; then
@@ -344,14 +344,14 @@ manage_secrets() {
     # MODE 1: Auto-Discovery via .env.example
     if [ -f "$TEMPLATE_FILE" ]; then
         log_info "Found template '$TEMPLATE_FILE'. Detecting required keys..."
-        
+
         while IFS='=' read -r key value || [ -n "$key" ]; do
             # Skip comments (#) and empty lines
             [[ "$key" =~ ^#.*$ ]] && continue
             [[ -z "$key" ]] && continue
-            
+
             key=$(echo "$key" | xargs)
-            
+
             # Skip PORT as we already handled it
             if [[ "$key" == "PORT" ]]; then continue; fi
 
@@ -359,16 +359,16 @@ manage_secrets() {
             if [ -f "$SECRETS_FILE" ]; then
                 current_val=$(grep "^$key=" "$SECRETS_FILE" | cut -d'=' -f2-)
             fi
-            
+
             echo -ne "Enter value for ${COLORS_BLUE}$key${COLORS_NC} "
             if [ -n "$current_val" ]; then
                 echo -ne "[${COLORS_YELLOW}*******${COLORS_NC}]: "
             else
                 echo -ne "[${COLORS_YELLOW}None${COLORS_NC}]: "
             fi
-            
+
             read input_val
-            
+
             if [ -n "$input_val" ]; then
                 save_secret "$key" "$input_val"
             elif [ -z "$current_val" ]; then
@@ -376,14 +376,14 @@ manage_secrets() {
             else
                  log_info "Keeping existing value for $key"
             fi
-            
+
         done < "$TEMPLATE_FILE"
-        
+
     else
         # MODE 2: Manual Entry (Fallback)
         log_warn "No '$TEMPLATE_FILE' found. Manual entry mode."
         log_info "Type 'DONE' as the Key Name to finish."
-        
+
         while true; do
             read -p "Enter Key Name (e.g. OPENAI_KEY) [or DONE]: " KEY_NAME
             if [[ "${KEY_NAME,,}" == "done" ]] || [[ -z "$KEY_NAME" ]]; then
@@ -420,7 +420,7 @@ EOF
 manage_config() {
     if [ -f "$CONFIG_FILE" ]; then
         source "$CONFIG_FILE"
-        
+
         echo "========================================"
         log_header "CURRENT CONFIGURATION"
         echo "========================================"
@@ -433,9 +433,9 @@ manage_config() {
         echo "7. Force Reset  : ${GIT_FORCE_RESET:-false}"
         echo "8. Health Check : ${HEALTHCHECK_URL:-None}"
         echo "----------------------------------------"
-        
+
         get_input "Do you want to edit this configuration? (y/n)" "EDIT_CHOICE" "n"
-        
+
         if [[ "${EDIT_CHOICE,,}" != "y" ]]; then
             if [[ -z "$SERVICE_NAME" || -z "$SERVICE_USER" || -z "$MAIN_SCRIPT" ]]; then
                 log_warn "Missing required values. Forcing edit mode."
@@ -455,10 +455,10 @@ manage_config() {
     get_input "Enter Service Name (systemd name)" "SERVICE_NAME" "$SERVICE_NAME"
     get_input "Enter Service Description" "SERVICE_DESC" "$SERVICE_DESC"
     get_input "Enter Python Main Script Filename" "MAIN_SCRIPT" "$MAIN_SCRIPT"
-    
+
     DEFAULT_DIR="/opt/$SERVICE_NAME"
     get_input "Enter Install Directory" "INSTALL_DIR" "${INSTALL_DIR:-$DEFAULT_DIR}"
-    
+
     SUGGESTED_USER="${SUDO_USER:-root}"
     get_input "Enter Service User" "SERVICE_USER" "${SERVICE_USER:-$SUGGESTED_USER}"
 
@@ -483,25 +483,25 @@ do_test() {
     log_header "PHASE: TESTING"
     manage_config
     manage_secrets
-    
+
     if [ ! -d "venv" ]; then
         log_info "Creating temporary local virtual environment..."
         python3 -m venv venv
     fi
-    
+
     source venv/bin/activate
-    
+
     if [ -f "requirements.txt" ]; then
         pip install -r requirements.txt
     fi
-    
+
     if [ -f "$SECRETS_FILE" ]; then
         log_info "Loading API keys from $SECRETS_FILE..."
         set -a
         source "$SECRETS_FILE"
         set +a
     fi
-    
+
     log_info "Running $MAIN_SCRIPT in test mode..."
     log_info "Press Ctrl+C to stop."
     python3 "$MAIN_SCRIPT"
@@ -540,11 +540,11 @@ do_install() {
     manage_config
     select_git_branch
     manage_secrets
-    
+
     SERVICE_GROUP=$(id -gn "$SERVICE_USER")
 
     log_info "Installing $SERVICE_NAME (Branch: $CURRENT_GIT_BRANCH)..."
-    
+
     if [ -d ".git" ]; then
          log_info "Pulling latest code from $CURRENT_GIT_BRANCH..."
          git checkout "$CURRENT_GIT_BRANCH"
@@ -555,27 +555,27 @@ do_install() {
 
     cp "$MAIN_SCRIPT" "$INSTALL_DIR/"
     if [ -f "requirements.txt" ]; then cp "requirements.txt" "$INSTALL_DIR/"; fi
-    
+
     if [ -f "$SECRETS_FILE" ]; then
         log_info "Installing secrets file..."
         cp "$SECRETS_FILE" "$INSTALL_DIR/$SECRETS_FILE"
         chmod 600 "$INSTALL_DIR/$SECRETS_FILE"
         chown "$SERVICE_USER":"$SERVICE_GROUP" "$INSTALL_DIR/$SECRETS_FILE"
     fi
-    
+
     chown -R "$SERVICE_USER":"$SERVICE_GROUP" "$INSTALL_DIR"
     log_info "Setting up Production Virtual Environment..."
     if ! su - "$SERVICE_USER" -c "python3 -m venv $INSTALL_DIR/venv"; then
         log_error "Failed to create venv."
         exit 1
     fi
-    
+
     if [ -f "$INSTALL_DIR/requirements.txt" ]; then
         su - "$SERVICE_USER" -c "$INSTALL_DIR/venv/bin/pip install -r $INSTALL_DIR/requirements.txt"
     fi
 
     SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
-    
+
     cat > "$SERVICE_FILE" <<EOF
 [Unit]
 Description=$SERVICE_DESC
@@ -609,7 +609,7 @@ EOF
     if [ -n "$HEALTHCHECK_URL" ]; then
         wait_for_healthcheck "$HEALTHCHECK_URL"
     fi
-    
+
     log_info "Installation Complete!"
 }
 
@@ -621,9 +621,9 @@ do_upgrade() {
     check_dependencies
     manage_config
     select_git_branch
-    
+
     SERVICE_GROUP=$(id -gn "$SERVICE_USER")
-    
+
     if systemctl is-active --quiet "$SERVICE_NAME"; then
         log_warn "Stopping service $SERVICE_NAME..."
         systemctl stop "$SERVICE_NAME"
@@ -649,7 +649,7 @@ do_upgrade() {
         log_info "Checking for updates from GitHub (Branch: $CURRENT_GIT_BRANCH)..."
         CHECKSUM_BEFORE=$(sha256sum "$0" | awk '{print $1}')
         GIT_OWNER=$(stat -c '%U' .git)
-        
+
         # Helper to run git command as owner or root
         run_git() {
             local cmd="$1"
@@ -677,17 +677,17 @@ do_upgrade() {
             exec "$0" "$@"
         fi
     fi
-    
+
     cp "$MAIN_SCRIPT" "$INSTALL_DIR/"
     if [ -f "requirements.txt" ]; then cp "requirements.txt" "$INSTALL_DIR/"; fi
-    
+
     chown -R "$SERVICE_USER":"$SERVICE_GROUP" "$INSTALL_DIR"
 
     if [ -f "$INSTALL_DIR/requirements.txt" ]; then
         log_info "Updating Python dependencies..."
         su - "$SERVICE_USER" -c "$INSTALL_DIR/venv/bin/pip install --upgrade -r $INSTALL_DIR/requirements.txt"
     fi
-    
+
     systemctl start "$SERVICE_NAME"
     log_info "Service restarted."
 
@@ -702,12 +702,12 @@ do_uninstall_service() {
     log_header "PHASE: UNINSTALL SERVICE"
     check_root
     manage_config
-    
+
     systemctl stop "$SERVICE_NAME" 2>/dev/null
     systemctl disable "$SERVICE_NAME" 2>/dev/null
     rm -f "/etc/systemd/system/${SERVICE_NAME}.service"
     systemctl daemon-reload
-    
+
     get_input "Delete directory $INSTALL_DIR? (y/n)" "DELETE_DIR" "n"
     if [[ "${DELETE_DIR,,}" == "y" ]]; then
         if [ -f "$INSTALL_DIR/$SECRETS_FILE" ]; then
@@ -756,9 +756,9 @@ show_menu() {
     echo "7. View Logs"
     echo "9. Exit"
     echo "========================================"
-    
+
     get_input "Select an option" "MENU_CHOICE" ""
-    
+
     case $MENU_CHOICE in
         1) do_test ;;
         2) do_test_cleanup ;;
