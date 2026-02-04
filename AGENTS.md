@@ -70,3 +70,10 @@ When initializing a new project based on this repo:
 3.  [ ] Create `AGENTS.md` (copy this file or a summarized version).
 4.  [ ] Ensure `.gitignore` is set up correctly for the language/framework.
 5.  [ ] Verify `dark_mode.md` principles are applied to UI designs.
+6.  [ ] If using AI features, consult `AI_IMPLEMENTATION.md`.
+
+## 7. AI Integration
+
+*   **Implementation Guide:** For projects requiring AI capabilities (specifically Gemini), you **must** follow the instructions in `AI_IMPLEMENTATION.md`.
+*   **Prompt Management:** Use `prompts_examples/learning.txt` as a template for prompt structure and storage.
+*   **Boilerplate:** Use `python_tool/ai_example.py` for correct API client initialization and response handling (especially for `asyncio` compatibility).
