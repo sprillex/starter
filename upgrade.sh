@@ -66,6 +66,26 @@ log_warn() { echo -e "${COLORS_YELLOW}[WARN]${COLORS_NC} $1"; }
 log_error() { echo -e "${COLORS_RED}[ERROR]${COLORS_NC} $1"; }
 log_header() { echo -e "${COLORS_BLUE}$1${COLORS_NC}"; }
 
+load_defaults() {
+    if [ -f "$TEMPLATE_FILE" ]; then
+        while IFS='=' read -r key value || [ -n "$key" ]; do
+            [[ "$key" =~ ^#.*$ ]] && continue
+            [[ -z "$key" ]] && continue
+            key=$(echo "$key" | xargs)
+            value=$(echo "$value" | xargs)
+
+            # Map PORT to SERVICE_PORT for the script logic
+            if [ "$key" == "PORT" ]; then
+                eval "SERVICE_PORT=\"$value\""
+                eval "SKIP_PROMPT_SERVICE_PORT=true"
+            else
+                eval "$key=\"$value\""
+                eval "SKIP_PROMPT_$key=true"
+            fi
+        done < "$TEMPLATE_FILE"
+    fi
+}
+
 check_root() {
     if [ "$EUID" -ne 0 ]; then
         log_error "This operation requires root privileges. Please run with sudo."
@@ -210,7 +230,15 @@ get_input() {
     local prompt_text="$1"
     local var_name="$2"
     local default_val="$3"
+    local allow_empty="$4"
     local input_val=""
+
+    # Check for auto-fill from .env.example
+    local skip_var="SKIP_PROMPT_${var_name}"
+    if [ "${!skip_var}" == "true" ]; then
+        log_info "Using configured value for $var_name: ${!var_name}"
+        return 0
+    fi
 
     while true; do
         if [ -n "$default_val" ]; then
@@ -232,6 +260,8 @@ get_input() {
         if [ -z "$input_val" ]; then
             if [ -n "$default_val" ]; then
                 input_val="$default_val"
+            elif [ "$allow_empty" == "true" ]; then
+                break
             else
                 log_error "This value cannot be empty. Please try again (or type 'exit')."
                 continue
@@ -314,6 +344,7 @@ save_secret() {
 }
 
 manage_secrets() {
+    load_defaults
     echo "========================================"
     log_header "API KEYS & SECRETS"
     echo "========================================"
@@ -323,6 +354,9 @@ manage_secrets() {
     if [ -f "$SECRETS_FILE" ]; then
         local saved_port=$(grep "^PORT=" "$SECRETS_FILE" | cut -d'=' -f2-)
         if [ -n "$saved_port" ]; then current_port="$saved_port"; fi
+    elif [ -n "$SERVICE_PORT" ]; then
+        # Loaded from defaults
+        current_port="$SERVICE_PORT"
     fi
 
     select_port "SERVICE_PORT" "$current_port"
@@ -418,6 +452,7 @@ EOF
 }
 
 manage_config() {
+    load_defaults
     if [ -f "$CONFIG_FILE" ]; then
         source "$CONFIG_FILE"
 
@@ -442,6 +477,9 @@ manage_config() {
             else
                 return 0
             fi
+        else
+            # Clear skip flags to allow editing
+            for var in ${!SKIP_PROMPT_@}; do unset $var; done
         fi
     else
         log_info "No configuration found. Starting setup."
@@ -464,15 +502,18 @@ manage_config() {
 
     echo "----------------------------------------"
     echo "ADVANCED OPTIONS"
-    get_input "Enter filenames to backup on upgrade (space separated, or leave empty)" "BACKUP_FILES" "${BACKUP_FILES}"
+    get_input "Enter filenames to backup on upgrade (space separated, or leave empty)" "BACKUP_FILES" "${BACKUP_FILES}" "true"
 
     echo "FORCE GIT RESET: If 'true', local changes will be discarded on upgrade."
     echo "Use this for 'appliance' style deployments."
     get_input "Enable Force Git Reset? (true/false)" "GIT_FORCE_RESET" "${GIT_FORCE_RESET:-false}"
 
     echo "HEALTH CHECK URL: Optional URL to curl after start to verify connectivity."
-    echo "Example: http://127.0.0.1:5000/health (Leave empty to skip)"
-    get_input "Enter Health Check URL" "HEALTHCHECK_URL" "${HEALTHCHECK_URL}"
+    DEFAULT_HEALTH="http://127.0.0.1:${SERVICE_PORT:-5000}"
+    if [ -n "$HEALTHCHECK_URL" ]; then DEFAULT_HEALTH="$HEALTHCHECK_URL"; fi
+
+    echo "Example: $DEFAULT_HEALTH (Leave empty to skip)"
+    get_input "Enter Health Check URL" "HEALTHCHECK_URL" "${DEFAULT_HEALTH}"
 
     save_config
 }
@@ -481,8 +522,8 @@ manage_config() {
 
 do_test() {
     log_header "PHASE: TESTING"
-    manage_config
     manage_secrets
+    manage_config
 
     if [ ! -d "venv" ]; then
         log_info "Creating temporary local virtual environment..."
@@ -537,9 +578,9 @@ do_install() {
     log_header "PHASE: INSTALL SERVICE"
     check_root
     check_dependencies
+    manage_secrets
     manage_config
     select_git_branch
-    manage_secrets
 
     SERVICE_GROUP=$(id -gn "$SERVICE_USER")
 
