@@ -14,12 +14,12 @@ This file serves as the **Master Instruction Set** for any AI agent working on t
 When working on a Python backend or systemd service:
 
 ### 2.1 Service Management
-*   **Mandatory Script:** You **must** use the `manage_service.sh` script (found in `python_tool/`) for service lifecycle management.
+*   **Mandatory Script:** You **must** use the `upgrade.sh` script (located in the root directory) for service lifecycle management.
     *   It handles: Virtual Environments, Systemd Unit creation, Updates, and Uninstallation.
 *   **No Manual Systemd:** Do not write separate `.service` files manually unless strictly necessary. Rely on the script generator.
 
 ### 2.2 Port Selection
-*   **Check Availability:** Before hardcoding a port or suggesting one to the user, you **must** consult `python_tool/common_ports_do_not_use.csv`.
+*   **Check Availability:** Before hardcoding a port or suggesting one to the user, you **must** consult `common_ports_do_not_use.csv`.
 *   **Avoid Conflicts:** Do not use ports listed in that file (e.g., 5000, 8080, 3000) for production services if possible. Suggest alternatives (e.g., 5001, 8090).
 *   **Dynamic Config:** Ports should be configurable via environment variables (`PORT`), not hardcoded.
 
@@ -65,7 +65,7 @@ When working on Android applications:
 
 When initializing a new project based on this repo:
 
-1.  [ ] Copy `python_tool/` to the root (if Python).
+1.  [ ] Copy `upgrade.sh`, `.env.example`, and `common_ports_do_not_use.csv` to the root (if Python).
 2.  [ ] Copy relevant workflows from `workflows_examples/` to `.github/workflows/`.
 3.  [ ] Create `AGENTS.md` (copy this file or a summarized version).
 4.  [ ] Ensure `.gitignore` is set up correctly for the language/framework.

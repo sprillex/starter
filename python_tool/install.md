@@ -18,19 +18,19 @@ A generic, self-healing installer for deploying Python scripts as systemd servic
 
 1.  **Prepare your project:**
     Ensure your folder contains:
-    * `manage_service.sh` (The installer)
+    * `upgrade.sh` (The installer)
     * `main.py` (Your python script)
     * `requirements.txt` (Dependencies)
     * `.env.example` (Optional: List of required API keys)
 
 2.  **Make executable:**
     ```bash
-    chmod +x manage_service.sh
+    chmod +x upgrade.sh
     ```
 
 3.  **Run the menu:**
     ```bash
-    ./manage_service.sh
+    ./upgrade.sh
     ```
 
 ## Workflow
